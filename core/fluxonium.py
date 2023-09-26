@@ -24,7 +24,6 @@ class Fluxonium:
         self.dim = dim
         self.hamiltonian_creation = hamiltonian_creation
 
-    
         """
         Creation of Fluxonium Hamiltonians and Operators 
 
@@ -48,16 +47,10 @@ class Fluxonium:
 
         return lc_osc - self.EJ * cos_phi
 
-    def auto_H(self) -> torch.Tensor:
+    def auto_H(self) -> np.ndarray:
         # Constructs Hamiltonian in harmonic-oscillator basis using scqubits.
-        return torch.from_numpy(
-            sc.Fluxonium(
-                EJ=self.EJ.item(),
-                EC=self.EC.item(),
-                EL=self.EL.item(),
-                flux=self.flux.item(),
-                cutoff=self.dim,
-            ).hamiltonian()
+        return sc.Fluxonium(
+            EJ=self.EJ.item(), EC=self.EC.item(), EL=self.EL.item(), flux=self.flux.item(), cutoff=self.dim
         )
 
     def sym_H(self) -> torch.Tensor:
@@ -69,12 +62,10 @@ class Fluxonium:
             - self.EJ * cos_argument
             + self.EL * torch.pow(self.phi_operator(), 2) / 2
         )
-    
 
     def manual_discretization_H(self) -> torch.Tensor:
         # Constructs Hamiltonian using disretization of symbolic form.
         pass
-
 
     def t1_supported_noise_channels(self):
         t1_supported_noise_channels = []
@@ -106,7 +97,7 @@ class Fluxonium:
         # Hamiltonian given in harmonic oscillator basis
         # TBC: eigenvals are returned in units of freqeucy
         if self.hamiltonian_creation == "create_H":
-            eigvals, eigvecs = torch.linalg.eigh(self.create_H())
+            eigvals, eigvecs = sp.linalg.eigh(self.create_H())
         if self.hamiltonian_creation == "auto_H":
             eigvals, eigvecs = torch.linalg.eigh(self.auto_H())
         if self.hamiltonian_creation == "sym_H":
