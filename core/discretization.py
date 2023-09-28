@@ -35,31 +35,23 @@ class DOM:
     def partial_x1_fd(self) -> torch.Tensor:
         return torch.kron(
             self.eye_x2(),
-            torch.tensor(
-                sps.diags([-1, 1, 1], [0, 1, -self.eye_x1() + 1], shape=(self.eye_x1(), self.eye_x1())).todense()
-            ),
+            torch.tensor(sps.diags([-1, 1, 1], [0, 1, -self.x1 + 1], shape=(self.x1, self.x1)).todense()),
         )
 
     def partial_x1_bk(self) -> torch.Tensor:
         return torch.kron(
             self.eye_x2(),
-            torch.tensor(
-                sps.diags([1, -1, -1], [0, -1, -self.eye_x1() - 1], shape=(self.eye_x1(), self.eye_x1())).todense()
-            ),
+            torch.tensor(sps.diags([1, -1, -1], [0, -1, self.x1 - 1], shape=(self.x1, self.x1)).todense()),
         )
 
     def partial_x2_fd(self) -> torch.Tensor:
         return torch.kron(
             self.eye_x1(),
-            torch.tensor(
-                sps.diags([-1, 1, 1], [0, 1, -self.eye_x2() + 1], shape=(self.eye_x2(), self.eye_x2())).todense()
-            ),
+            torch.tensor(sps.diags([-1, 1, 1], [0, 1, -self.x2 + 1], shape=(self.x2, self.x2)).todense()),
         )
 
     def partial_x2_bk(self) -> torch.Tensor:
         return torch.kron(
             self.eye_x1(),
-            torch.tensor(
-                sps.diags([1, -1, -1], [0, -1, -self.eye_x2() - 1], shape=(self.eye_x2(), self.eye_x2())).todense()
-            ),
+            torch.tensor(sps.diags([1, -1, -1], [0, -1, self.x2 - 1], shape=(self.x2, self.x2)).todense()),
         )

@@ -30,13 +30,14 @@ class AribtraryCircuit:
     """
 
     def H_expression() -> spy.Expr:
-        # just calls scqubits
+        # just calls scqubits and does some formatting to express it how we want i.e remove the Q's
         return
 
     def dH_expression() -> spy.Expr:
-        # function to find dH/dEj or dH/dflux etc for use in coherence time calc
+        # function to find dH/dEj or dH/dflux etc for use in coherence time calc - should be straightforward with sympy diff()
         return
 
     def discretize_operator() -> torch.Tensor:
-        # function to discretize any operator e.g a form_of_H or
+        # function to discretize any operator e.g a form_of_H or a dH_expression
+        # need to geneleriase DOM for higher dimensions
         return
