@@ -1,0 +1,20 @@
+# Testing
+
+"""
+Eigesolve Accuracy 
+______________________________________
+
+#should use all eigensolving techniques and show eigenvals 
+#are same (xitorch davidson, torch lobpcg, scipy sparse eigh etc)
+
+"""
+
+"""
+
+Discretization Accuracy
+_______________________________________
+
+#hamiltonian produced by my discretisation same as alex's 
+#(not confident this is true, seems to be some fundamental disagreements)
+
+"""

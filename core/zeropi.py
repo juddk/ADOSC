@@ -9,6 +9,7 @@ from typing import Union
 from discretization import DOM
 import xitorch
 from xitorch import linalg
+import utils as utl
 
 
 class ZeroPi:
@@ -40,12 +41,11 @@ class ZeroPi:
         self.ncut = ncut
         self.discretization_dim = discretization_dim
         self.hamiltonian_creation_solution = hamiltonian_creation_solution
-        
 
         """
         Creation of Zero Pi Hamiltonians and Operators 
 
-        Optimisation over EJ, EL, ECJ, ECS, EC, dEJ, dCJ. 
+        Supports optimisation over EJ, EL, ECJ, ECS, EC, dEJ, dCJ. 
 
         Parameters
         ----------
@@ -145,13 +145,14 @@ class ZeroPi:
 
         if self.hamiltonian_creation_solution == "auto_H":
             eigvals, eigvecs = sp.linalg.eigh(self.auto_H(sparse=False))
-        
+
         elif self.hamiltonian_creation_solution == "manual_discretization_davidson":
             H = xitorch.LinearOperator.m(self.manual_discretization_H(sparse=False))
             xitorch.LinearOperator._getparamnames(H, "EJ, EL, ECJ, ECS, EC, dEJ, dCJ")
             eigvals, eigvecs = xitorch.linalg.symeig(
-                H,
-                2,
+                A=H,
+                neig=2,
+                mode="lowest",
                 method="davidson",
                 max_niter=100,
                 nguess=None,
@@ -217,26 +218,47 @@ class ZeroPi:
     def d_hamiltonian_d_EJ_operator(self, sparse: bool = True) -> torch.Tensor:
         I = torch.kron(self.init_grid().eye_x1(), self.init_grid().eye_x2())
 
-        O = (
-            -2 * self.cos_phi_operator() * self.cos_theta_operator(x=-2.0 * np.pi * self.flux / 2.0)
-            + 2 * I
-            + self.dEJ * self.sin_theta_operator() * self.sin_phi_operator(x=-2.0 * np.pi * self.flux / 2.0)
-        )
         if sparse == False:
-            return O
-        if sparse == True:
-            return O.to_sparse()
+            return (
+                -2
+                * self.cos_phi_operator(sparse=sparse)
+                * self.cos_theta_operator(x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse)
+                + 2 * I
+                + self.dEJ
+                * self.sin_theta_operator(sparse=sparse)
+                * self.sin_phi_operator(x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse)
+            )
+
+        else:
+            return (
+                -2
+                * utl.sparse_mv(
+                    self.cos_phi_operator(sparse=sparse),
+                    self.cos_theta_operator(x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse),
+                )
+                + 2 * I.to_sparse()
+                + self.dEJ
+                * utl.sparse_mv(
+                    self.sin_theta_operator(sparse=sparse),
+                    self.sin_phi_operator(x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse),
+                )
+            )
 
     def d_hamiltonian_d_flux_operator(self, sparse: bool = True) -> torch.Tensor:
-        O = self.EJ * self.cos_phi_operator() * self.sin_theta_operator(
-            x=-2.0 * np.pi * self.flux / 2.0
-        ) - 0.5 * self.EJ * self.dEJ * self.sin_theta_operator() * self.cos_phi_operator(
-            x=-2.0 * np.pi * self.flux / 2.0
-        )
         if sparse == False:
-            return O
+            return self.EJ * self.cos_phi_operator(sparse=sparse) * self.sin_theta_operator(
+                x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse
+            ) - 0.5 * self.EJ * self.dEJ * self.sin_theta_operator(sparse=sparse) * self.cos_phi_operator(
+                x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse
+            )
         if sparse == True:
-            return O.to_sparse()
+            return self.EJ * utl.sparse_mv(
+                self.cos_phi_operator(sparse=sparse),
+                self.sin_theta_operator(x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse),
+            ) - 0.5 * self.EJ * self.dEJ * utl.sparse_mv(
+                self.sin_theta_operator(sparse=sparse),
+                self.cos_phi_operator(x=-2.0 * np.pi * self.flux / 2.0, sparse=sparse),
+            )
 
     """ 
     def d_hamiltonian_d_EJ(self) -> torch.Tensor:
