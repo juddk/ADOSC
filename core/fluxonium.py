@@ -4,6 +4,7 @@ import scqubits as sc
 import numpy as np
 import math
 import scipy as sp
+import arbitrary as arb
 
 
 class Fluxonium:
@@ -27,9 +28,7 @@ class Fluxonium:
         """
         Creation of Fluxonium Hamiltonians and Operators 
 
-        Parameters
-        ----------
-        ddddd : ddd
+       Supports optimisation over EJ, EL, EC.
 
         """
 
@@ -43,7 +42,7 @@ class Fluxonium:
         diag_elements = [(i + 0.5) for i in range(self.dim)]
         lc_osc = torch.tensor(np.diag(diag_elements), dtype=torch.double)
         lc_osc = lc_osc * plasma_energy
-        cos_phi = self.cos_phi_operator(alpha=1, beta=2 * np.pi * self.flux)
+        cos_phi = self.cos_phi_operator(x=2 * np.pi * self.flux)
 
         return lc_osc - self.EJ * cos_phi
 
@@ -63,9 +62,18 @@ class Fluxonium:
             + self.EL * torch.pow(self.phi_operator(), 2) / 2
         )
 
-    def manual_discretization_H(self) -> torch.Tensor:
+    def auto_discretization_H(self) -> torch.Tensor:
         # Constructs Hamiltonian using disretization of symbolic form.
-        pass
+        # calls aribtrary circuit H_expression to get form of H
+
+        flx_yaml = """
+                    branches:
+                    - ["JJ", 1,2, EJ=2, EC=2]
+                    - ["EL", 1,2, EL =2]
+                """
+        arb.H_expression(flx_yaml)
+
+        return
 
     def t1_supported_noise_channels(self):
         t1_supported_noise_channels = []
@@ -97,7 +105,7 @@ class Fluxonium:
         # Hamiltonian given in harmonic oscillator basis
         # TBC: eigenvals are returned in units of freqeucy
         if self.hamiltonian_creation == "create_H":
-            eigvals, eigvecs = sp.linalg.eigh(self.create_H())
+            eigvals, eigvecs = torch.linalg.eigh(self.create_H())
         if self.hamiltonian_creation == "auto_H":
             eigvals, eigvecs = torch.linalg.eigh(self.auto_H())
         if self.hamiltonian_creation == "sym_H":
@@ -119,18 +127,18 @@ class Fluxonium:
 
         return phi
 
-    def cos_phi_operator(self, alpha: float = 1.0, beta: float = 0.0):
+    def cos_phi_operator(self, x: float = 0.0):
         # Returns the cos phi operator in the LC harmonic oscillator basis
-        argument = alpha * self.phi_operator() + beta * torch.tensor(np.eye(self.dim), dtype=torch.double)
+        argument = self.phi_operator() + x * torch.tensor(np.eye(self.dim), dtype=torch.double)
 
         # since pytorch does not have a cosm fucntion, use exponential form
         cos_phi = (torch.linalg.matrix_exp(argument * 1j) + torch.linalg.matrix_exp(argument * -1j)) / 2
 
         return cos_phi
 
-    def sin_phi_operator(self, alpha: float = 1.0, beta: float = 0.0):
+    def sin_phi_operator(self, x: float = 0.0):
         # Returns the sin phi operator in the LC harmonic oscillator basis
-        argument = alpha * self.phi_operator() + beta * torch.tensor(np.eye(self.dim), dtype=torch.double)
+        argument = self.phi_operator() + x * torch.tensor(np.eye(self.dim), dtype=torch.double)
         sin_phi = (torch.linalg.matrix_exp(argument * 1j) - torch.linalg.matrix_exp(argument * -1j)) / 2j
 
         return sin_phi
@@ -147,13 +155,13 @@ class Fluxonium:
         )
         return n_op
 
-    def d_hamiltonian_d_flux(self):
+    def d_hamiltonian_d_flux_operator(self):
         # Returns operator representing a derivative of the Hamiltonian with respect to
         # flux in the harmonic-oscillator (charge) basis
-        d_ham_d_flux = -2 * np.pi * self.EJ * self.sin_phi_operator(alpha=1, beta=2 * np.pi * self.flux)
+        d_ham_d_flux = -2 * np.pi * self.EJ * self.sin_phi_operator(x=2 * np.pi * self.flux)
         return d_ham_d_flux
 
-    def d_hamiltonian_d_EJ(self):
+    def d_hamiltonian_d_EJ_operator(self):
         # Returns operator representing a derivative of the Hamiltonian with respect to
         # EJ in the harmonic-oscillator (charge) basis
-        return -self.cos_phi_operator(alpha=1, beta=2 * np.pi * self.flux)
+        return -self.cos_phi_operator(x=2 * np.pi * self.flux)

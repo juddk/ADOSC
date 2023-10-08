@@ -1,5 +1,8 @@
 # Testing
 
+import torch 
+
+
 """
 Eigesolve Accuracy 
 ______________________________________
@@ -17,4 +20,6 @@ _______________________________________
 #hamiltonian produced by my discretisation same as alex's 
 #(not confident this is true, seems to be some fundamental disagreements)
 
+
 """
+

@@ -26,17 +26,6 @@ NOISE_PARAMS = {
 
 
 # USEFUL FUNCTIONS
-def change_operator_basis(
-    operator: torch.Tensor,
-    change_of_basis_matrix: torch.Tensor,
-) -> torch.Tensor:
-    operator = (
-        operator.to(torch.complex128)
-        if change_of_basis_matrix.dtype == torch.complex128
-        else operator.to(torch.float64)
-    )
-    new_operator = change_of_basis_matrix.conj().T @ operator @ change_of_basis_matrix
-    return new_operator
 
 
 def calc_therm_ratio(omega: torch.Tensor, T: float = NOISE_PARAMS["T"]):
@@ -133,7 +122,6 @@ def tphi_rate(
 # T1 AND TPHI ACROSS SPECIFIC NOISE CHANNELS
 def effective_t1_rate(
     qubit,
-    sparse: bool,
     eigvecs: torch.Tensor,
     eigvals: torch.Tensor,
     noise_channels: Union[str, List[str]],
@@ -146,7 +134,7 @@ def effective_t1_rate(
 
     if "t1_capacitive" in noise_channels:
         t1 += t1_rate(
-            noise_op=qubit.n_operator(sparse),
+            noise_op=qubit.n_operator(),
             spectral_density=spectral_density_cap(qubit, eigvals, True, T)
             + spectral_density_cap(qubit, eigvals, False, T),
             eigvecs=eigvecs,
@@ -154,7 +142,7 @@ def effective_t1_rate(
 
     if "t1_flux_bias_line" in noise_channels:
         t1 += t1_rate(
-            noise_op=qubit.d_hamiltonian_d_flux_operator(sparse),
+            noise_op=qubit.d_hamiltonian_d_flux_operator(),
             spectral_density=spectral_density_fbl(eigvals, True, M, R_0, T)
             + spectral_density_fbl(eigvals, False, M, R_0, T),
             eigvecs=eigvecs,
@@ -162,7 +150,7 @@ def effective_t1_rate(
 
     if "t1_charge_impedance" in noise_channels:
         t1 += t1_rate(
-            noise_op=qubit.n_operator(sparse),
+            noise_op=qubit.n_operator(),
             spectral_density=spectral_density_ci(eigvals, True, R_0, T, R_k)
             + spectral_density_ci(eigvals, False, R_0, T, R_k),
             eigvecs=eigvecs,
@@ -170,7 +158,7 @@ def effective_t1_rate(
 
     if "t1_inductive" in noise_channels:
         t1 += t1_rate(
-            noise_op=qubit.phi_operator(sparse),
+            noise_op=qubit.phi_operator(),
             spectral_density=spectral_density_ind(qubit=qubit, eigvals=eigvals, plus_minus_omega=True, T=T)
             + spectral_density_ind(qubit=qubit, eigvals=eigvals, plus_minus_omega=False, T=T),
             eigvecs=eigvecs,
@@ -178,7 +166,7 @@ def effective_t1_rate(
 
     if "t1_quasiparticle_tunneling" in noise_channels:
         t1 += t1_rate(
-            noise_op=qubit.sin_phi_operator(x=0.5 * (2 * np.pi * qubit.flux), sparse=sparse),
+            noise_op=qubit.sin_phi_operator(x=0.5 * (2 * np.pi * qubit.flux)),
             spectral_density=spectral_density_qt(qubit=qubit, eigvals=eigvals, plus_minus_omega=True, T=T)
             + spectral_density_qt(qubit=qubit, eigvals=eigvals, plus_minus_omega=False, T=T),
             eigvecs=eigvecs,
@@ -189,7 +177,6 @@ def effective_t1_rate(
 
 def effective_tphi_rate(
     qubit,
-    sparse: bool,
     eigvecs: torch.Tensor,
     noise_channels: Union[str, List[str]],
     A_cc: float = NOISE_PARAMS["A_cc"],
@@ -200,27 +187,25 @@ def effective_tphi_rate(
 
     # tphi_1_over_f_flux
     if "tphi_1_over_f_flux" in noise_channels:
-        tphi += tphi_rate(A_flux, qubit.d_hamiltonian_d_flux_operator(sparse), eigvecs=eigvecs)
+        tphi += tphi_rate(A_flux, qubit.d_hamiltonian_d_flux_operator(), eigvecs=eigvecs)
 
     # tphi_1_over_f_cc
     if "tphi_1_over_f_cc" in noise_channels:
-        tphi += tphi_rate(A_cc, qubit.d_hamiltonian_d_EJ_operator(sparse), eigvecs=eigvecs)
+        tphi += tphi_rate(A_cc, qubit.d_hamiltonian_d_EJ_operator(), eigvecs=eigvecs)
 
     # tphi_1_over_f_ng
     if "tphi_1_over_f_ng" in noise_channels:
-        tphi += tphi_rate(A_ng, qubit.d_hamiltonian_d_ng_operator(sparse), eigvecs=eigvecs)
+        tphi += tphi_rate(A_ng, qubit.d_hamiltonian_d_ng_operator(), eigvecs=eigvecs)
 
     return tphi
 
 
 # T2 RATE
-def t2_rate(qubit, eigvecs, eigvals, sparse: bool = True) -> torch.Tensor:
+def t2_rate(qubit, eigvecs, eigvals) -> torch.Tensor:
     t1_noise_channels = qubit.t1_supported_noise_channels()
     tphi_noise_channels = qubit.tphi_supported_noise_channels()
-    t1_rate = effective_t1_rate(
-        qubit=qubit, eigvals=eigvals, eigvecs=eigvecs, sparse=sparse, noise_channels=t1_noise_channels
-    )
-    tphi_rate = effective_tphi_rate(qubit=qubit, eigvecs=eigvecs, sparse=sparse, noise_channels=tphi_noise_channels)
+    t1_rate = effective_t1_rate(qubit=qubit, eigvals=eigvals, eigvecs=eigvecs, noise_channels=t1_noise_channels)
+    tphi_rate = effective_tphi_rate(qubit=qubit, eigvecs=eigvecs, noise_channels=tphi_noise_channels)
     return 0.5 * t1_rate + tphi_rate
 
 

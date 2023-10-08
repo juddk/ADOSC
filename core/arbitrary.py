@@ -1,4 +1,4 @@
-import scqubit
+import scqubits as sc
 import sympy as spy
 from sympy import symbols, lambdify, Expr
 import torch
@@ -29,12 +29,14 @@ class AribtraryCircuit:
 
     """
 
-    def H_expression() -> spy.Expr:
-        # just calls scqubits and does some formatting to express it how we want i.e remove the Q's
-        return
+    def H_expression(yaml) -> spy.Expr:
+        # greates symbolic form of H
+
+        return sc.Circuit(yaml, from_file=False).sym_hamiltonian(return_expr=True)
 
     def dH_expression() -> spy.Expr:
-        # function to find dH/dEj or dH/dflux etc for use in coherence time calc - should be straightforward with sympy diff()
+        # function to find dH/dEj or dH/dflux etc for use in coherence time calc
+        # should be straightforward using sympy diff on H_expression
         return
 
     def discretize_operator() -> torch.Tensor:
