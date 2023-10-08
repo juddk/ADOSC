@@ -135,7 +135,7 @@ class ZeroPi:
                 """
         arb.H_expression(zp_yaml)
 
-        # calls arb discretisation function
+        # calls arb.discretisation function on this circuit
 
         return
 
